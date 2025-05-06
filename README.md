@@ -97,7 +97,7 @@ snakemake --config stage=tradeoff  abundances=$PWD/results/annotate/batch1_abund
 We will utilize Snakemake config arguments to first submit jobs calculating the optimal tradeoff parameter for each sample.  The config can be modified to set the appropriate taxa abundance cutoff.
 
 ```
-snakemake --config stage=tradeoff cutoff=0.05  abundances=$PWD/data.csv agora=$PWD/agora103_genus.qza medium=$PWD/western_diet_gut.qza  --directory $PWD/results/
+snakemake --config stage=tradeoff  abundances=$PWD/results/annotate/batch1_abundances_renamed.csv agora=$PWD/agora201_refseq216_species_1.qza medium=$PWD/western_diet_gut_agora.qza taxrank=species             cutoff=.0001 --directory $PWD/results/
 ```
 
 
@@ -105,7 +105,7 @@ snakemake --config stage=tradeoff cutoff=0.05  abundances=$PWD/data.csv agora=$P
 Having decided on the tradeoff value based on the visualizations in `results/tradeoff.html`, you can now submit the growth jobs! This is done by changing the `stage` config argument, setting the `tradeoff` argument, and re-using the same output `--directory`.
 
 ```
-snakemake --config stage=grow tradeoff=0.6 cutoff=0.05 abundances=$PWD/data.csv agora=$PWD/agora103_genus.qza medium=$PWD/western_diet_gut.qza  --directory $PWD/results/
+snakemake --config stage=grow tradeoff=0.6  abundances=$PWD/results/annotate/batch1_abundances_renamed.csv agora=$PWD/agora201_refseq216_species_1.qza medium=$PWD/western_diet_gut_agora.qza taxrank=species             cutoff=.0001 --directory $PWD/results/
 ```
 
 ## Step 3: Analysis

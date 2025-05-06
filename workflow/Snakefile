@@ -16,7 +16,8 @@ import pandas as pd
 valid_stages = ["format16S", "annotate16S", "tradeoff", "grow"]
 
 # here we sort out the config args not needed by certain stages
-match config["stage"]:
+thisstage = config['stage']
+match thisstage:
     case "format16S":
         config["db_nsq_path"] = "na"
         config["asv_fasta"] = "na"
@@ -28,14 +29,13 @@ match config["stage"]:
         modname = "annotate16S"
     case "tradeoff":
         modname = "tradeoff_and_grow"
-
+        config['tradeoff']=None
     case "grow":
         modname = "tradeoff_and_grow"
     case _:
-        raise ValueError(f"{config['stage']} not a valid stage; choose one of: {', '.join(valid_stages)}")
+        raise ValueError(f"{thisstage} not a valid stage; choose one of: {', '.join(valid_stages)}")
 
 # this has to be a variable to work in "use rule", cant use config['stage']
-thisstage = config['stage']
 module:
     name: thisstage
     snakefile:

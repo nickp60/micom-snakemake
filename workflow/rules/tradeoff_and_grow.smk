@@ -17,7 +17,8 @@ data = pd.read_csv(config["abundances"])
 for col in ["sample_id",  config['taxrank'], "abundance"]:
     assert col in data.columns, f"{col} must be a column name"
 data = data[data.abundance > 0]
-
+# drop extra cols that could break the groupby summarizing later
+data = data[["sample_id", config['taxrank'], "abundance"]]
 
 metadata = pd.DataFrame(data.sample_id.unique(), columns=["sample_id"])
 if "ignore_samples" in config:
@@ -67,8 +68,8 @@ if "taxakey" in config:
     for k,v in replacements.items():
         tochange = data[config['taxrank']] == k
         data.loc[tochange, config['taxrank']] = v
-    # after replacing, we need to resum by genus to avoid duplicates
-    data = data.groupby(['sample_id', config['taxrank']])['abundance'].sum().reset_index()
+# especially after replacing taxa (but either way), we need to resum by taxrank to avoid duplicate rows
+data = data.groupby(['sample_id', config['taxrank']])['abundance'].sum().reset_index()
 
 
 # check for samples with no evaluable taxa
@@ -122,6 +123,7 @@ rule build:
         from micom.logger import logger
         logger.setLevel("INFO")
         thisdata = data[data.sample_id == wildcards.sample]
+        print(thisdata)
         manifest_osqp = build(
             thisdata,
             input.agora_file,
