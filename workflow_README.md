@@ -1,13 +1,3 @@
-m# Running MICOM with Snakemake
-
-Several steps of MICOM can be quite time consuming. Luckily, they are also parallelizable! Here we describe how to use the included Snakemake workflow to distribute those tasks to the cloud or HPC, and hand the results back to the tutorial.
-
-## Prerequisites
-
-- an environment containing MICOM and all its dependencies, as well as Snakemake
-  -- eg, `mamba create -n micom snakemake python -y ; mamba activate micom ;  pip install numpy==2.1.1 Cython biom-format==2.1.16 micom seaborn`
-- a configured Snakemake Profile
-
 ## Input Data
 
 This workflow requires three files:
@@ -53,3 +43,4 @@ From here, you can follow along the tutorial! Run the following in place of the 
 from micom.workflows import load_results
 growth = load_results("results/growth.zip")
 ```
+[
