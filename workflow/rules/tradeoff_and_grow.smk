@@ -117,6 +117,8 @@ rule build:
         outf="models/{sample}.pickle",
         out_manifest = "manifests/{sample}.csv"
     threads: 2
+    resources:
+        mem_mb=lambda wc, attempt: 8 * 1024 * attempt,
     params:
         cutoff=config["cutoff"]
     run:
@@ -154,6 +156,7 @@ rule get_tradeoff:
         outf = "tradeoffs/{sample}.csv"
     threads: 2
     resources:
+        mem_mb=lambda wc, attempt: 8 * 1024 * attempt,
         runtime=lambda wc, attempt: 24 * 60 * attempt,
     run:
         medium = load_qiime_medium(input.medium)
