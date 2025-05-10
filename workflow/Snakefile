@@ -47,6 +47,16 @@ use rule * from thisstage as thisstage*
 
 outputs = getattr(rules, f"{config['stage']}all").input
 
+if "solver" not in config:
+    config["solver"] = None
+
+theselocalrules = ["all"]
+if config["solver"] == "gurobi":
+    print(f"setting localrules to {theselocalrules}")
+    theselocalrules.append("tradeoffbuild")
+
+# cant set localrules
+workflow._localrules = set(theselocalrules)
 
 rule all:
     input:

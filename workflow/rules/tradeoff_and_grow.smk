@@ -102,6 +102,7 @@ else:
     assert config["tradeoff"] is not None, "Must set tradeoff config value"
     targets = "growth.zip"
 
+
 rule all:
     input:
         "manifest.csv",
@@ -130,7 +131,7 @@ rule build:
             thisdata,
             input.agora_file,
             os.path.dirname(output.outf),
-            solver="osqp",
+            solver=config["solver"],
             cutoff=params.cutoff,
             threads=1)
         manifest_osqp.to_csv(output.out_manifest, index=False)
