@@ -2,11 +2,9 @@ import os
 import sys
 
 
-from micom import Community
 import micom.qiime_formats as qf
 from micom.qiime_formats import load_qiime_medium
 from micom.workflows import grow, save_results, build, tradeoff, load_results
-from micom import Community
 import seaborn as sns
 import pandas as pd
 
@@ -16,9 +14,6 @@ import pandas as pd
 data = pd.read_csv(config["abundances"])
 for col in ["sample_id",  config['taxrank'], "abundance"]:
     assert col in data.columns, f"{col} must be a column name"
-data = data[data.abundance > 0]
-# drop extra cols that could break the groupby summarizing later
-data = data[["sample_id", config['taxrank'], "abundance"]]
 
 metadata = pd.DataFrame(data.sample_id.unique(), columns=["sample_id"])
 if "ignore_samples" in config:
@@ -31,66 +26,6 @@ if "ignore_samples" in config:
 if "testn" in config:
     metadata = metadata.head(config["testn"])
 
-
-agora_taxa = qf.load_qiime_manifest(config["agora"])
-print(agora_taxa[config["taxrank"]])
-
-#print(agora_taxa.shape)
-#agora_taxa = qf.load_qiime_manifest("/lila/data/brinkvd/users/watersn/micom-databases/recipes/agora2/databases/agora201_gtdb220_species_1.qza")
-#agora_taxa = qf.load_qiime_manifest("/lila/data/brinkvd/users/watersn/micom-databases/recipes/carveme/databases/carveme260d0f1_gtdb220_species_1.qza")
-#agora_taxa = qf.load_qiime_manifest("../resources/agora201_gtdb207_species_1.qza")
-print(agora_taxa.shape)
-# genera or species
-if config["taxrank"] == "species":
-    cols_of_interest = ["id", config['taxrank']]
-else:
-    cols_of_interest = [config['taxrank']]
-agora_genera = agora_taxa[cols_of_interest]
-
-ambig_genera_df = data[~data[config['taxrank']].isin(agora_genera[config["taxrank"]])].query('abundance > 0').groupby(config["taxrank"])["abundance"].agg(["median", "mean", "max", "count"]).sort_values("count", ascending=False)
-
-ambig_genera_df.to_csv("unmatchable_taxa.csv")
-agora_taxa[["id", config['taxrank']]].to_csv("available_taxa.csv")
-# def make_autokey(data, agora_genera, rank="species"):
-#     uniq_taxa = pd.DataFrame(data[rank].unique(), columns=["raw"])
-#     for i in in uniq_taxa.shape[0]:
-#     	taxon = uniq_taxa.iloc[i, 0]
-# 	genus  = taxon.split(" ")[0]
-# 	species  = " ".join(taxon.split(" ")[1:])
-# 	ref_genus =
-
-if "taxakey" in config:
-#    if config["taxakey"] == "auto":
-#       data = make_autokey(data)
-    replacementsdf = pd.read_csv(config["taxakey"], usecols=['A', 'B'])
-    replacements = dict(zip(replacementsdf.A, replacementsdf.B))
-    print(replacements)
-    for k,v in replacements.items():
-        tochange = data[config['taxrank']] == k
-        data.loc[tochange, config['taxrank']] = v
-# especially after replacing taxa (but either way), we need to resum by taxrank to avoid duplicate rows
-data = data.groupby(['sample_id', config['taxrank']])['abundance'].sum().reset_index()
-
-
-# check for samples with no evaluable taxa
-for sample in data.sample_id.unique():
-    _data = data[data.sample_id == sample].query("abundance > 0")
-    ntax = _data.shape[0]
-    _data = _data[_data[config['taxrank']].isin(agora_genera[config["taxrank"]])]
-
-    if _data.shape[0] == 0:
-        print(f"sample {sample} has no evaluable genera")
-        data = data[data.sample_id != sample]
-    else:
-        print(f"sample {sample} has {_data.shape[0]}/{ntax} evaluable genera")
-
-# remove non-agora taxa
-data = data[data[config['taxrank']].isin(agora_genera[config["taxrank"]])]
-data_summary = data.groupby('sample_id').agg({'abundance': 'sum'})
-data_summary["tmp"] = "1"
-p = sns.boxplot(data=data_summary, x="abundance", y="tmp")
-sns.swarmplot(data=data_summary, x="abundance",  y="tmp", ax=p)
-p.figure.savefig("MICOM_found_abundance_fraction.png")
 assert config["stage"] in ["tradeoff", "grow"], "stage must either be tradeoff or grow"
 
 if config["stage"] == "tradeoff":
@@ -117,7 +52,7 @@ rule build:
     output:
         outf="models/{sample}.pickle",
         out_manifest = "manifests/{sample}.csv"
-    threads: 2
+    threads: 1 # this multiprocesses across samples, so we want this to be 1 thread per (single-sample) job
     resources:
         mem_mb=lambda wc, attempt: 8 * 1024 * attempt,
     params:
@@ -126,14 +61,13 @@ rule build:
         from micom.logger import logger
         logger.setLevel("INFO")
         thisdata = data[data.sample_id == wildcards.sample]
-        print(thisdata)
         manifest_osqp = build(
             thisdata,
             input.agora_file,
             os.path.dirname(output.outf),
             solver=config["solver"],
             cutoff=params.cutoff,
-            threads=1)
+            threads=threads)
         manifest_osqp.to_csv(output.out_manifest, index=False)
 
 
@@ -155,7 +89,7 @@ rule get_tradeoff:
         medium = config["medium"]
     output:
         outf = "tradeoffs/{sample}.csv"
-    threads: 2
+    threads: 1
     resources:
         mem_mb=lambda wc, attempt: 8 * 1024 * attempt,
         runtime=lambda wc, attempt: 24 * 60 * attempt,
@@ -195,7 +129,7 @@ rule grow_sample:
         growth="growth/{sample}.zip"
     params:
         tradeoff = config["tradeoff"]
-    threads: 4
+    threads: 1
     resources:
         runtime=lambda wc, attempt: 4 * 60 * attempt,
     run:

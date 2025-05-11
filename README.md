@@ -86,10 +86,11 @@ This workflow requires three files:
 
 ## Step 0: Checking taxonomic coverage
 
-First, run the workflow with the `--dry-run` flag to prevent snakemake from submitting any jobs.  This will run the logic to match up the taxa you provided with those present in the pre-formated AGORA model.  Genera not able to matched will be written to `unmatchable_genera.csv` in your output directory. In cases of naming mismatches, create a csv file containing your and AGORA's genus names as columns `A` and `B`, and supply in the next step.
+First, run the workflow with the `--dry-run` flag to prevent snakemake from submitting any jobs.  This will run the logic to match up the taxa you provided with those present in the pre-formated AGORA model.  Genera not able to matched will be written to `unmatchable_genera.csv` in your output directory. In cases of naming mismatches, create a csv file containing your and AGORA's genus names as columns `A` and `B`, and supply in the next step.  The resulting file "postQC_abundances.csv" in the output directory can be used directly by the workflow
 
 ```
-snakemake --config stage=tradeoff  abundances=$PWD/results/annotate/batch1_abundances_renamed.csv agora=$PWD/agora201_refseq216_species_1.qza medium=$PWD/western_diet_gut_agora.qza taxrank=species             cutoff=.0001 --directory $PWD/results/  --dry-run
+ python workflow/scripts/check_model_coverage.py --abundances $PWD/results/annotate/batch1_abundances_renamed.csv --agora ./agora201_refseq216_species_1.qza --outdir results/annotate/QC/
+
 ```
 
 ## Step 1: Identifying an optimal tradeoff
@@ -97,7 +98,7 @@ snakemake --config stage=tradeoff  abundances=$PWD/results/annotate/batch1_abund
 We will utilize Snakemake config arguments to first submit jobs calculating the optimal tradeoff parameter for each sample.  The config can be modified to set the appropriate taxa abundance cutoff.
 
 ```
-snakemake --config stage=tradeoff  abundances=$PWD/results/annotate/batch1_abundances_renamed.csv agora=$PWD/agora201_refseq216_species_1.qza medium=$PWD/western_diet_gut_agora.qza taxrank=species             cutoff=.0001 --directory $PWD/results/
+snakemake --config stage=tradeoff  abundances=$PWD/results/annotate/QC/postQC_abundances.csv  agora=$PWD/agora201_refseq216_species_1.qza medium=$PWD/western_diet_gut_agora.qza taxrank=species             cutoff=.0001 --directory $PWD/results/
 ```
 
 
