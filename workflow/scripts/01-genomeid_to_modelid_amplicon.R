@@ -13,7 +13,7 @@ tmp <- read.csv(args[1])
 
 # merge with manifest
 tmp3 <- left_join(tmp %>% rename(id = species),
-                  key %>% select(id, species) %>% distinct())
+                  key %>% select(id, genus, species) %>% distinct())
 print("tmp3")
 print(head(tmp3))
 # In summary,
@@ -21,7 +21,7 @@ print(head(tmp3))
 # - we merged that with the agora2_refseq_species.tsv to get the full taxonomy; we merge on the species after stripping out brackets of the key
 # - (ignore!) we then replace special char with underscores to match the file names present in agora201_refseq216_species_1.qza
  write.table(tmp3 %>%
-             select(sample_id, abundance, species)%>%
+             select(sample_id, abundance, genus, species)%>%
              filter(abundance > 0) %>%
              group_by(sample_id) %>%
              arrange(sample_id, desc(abundance)) %>%

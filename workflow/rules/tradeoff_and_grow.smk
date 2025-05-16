@@ -132,6 +132,7 @@ rule grow_sample:
     threads: 1
     resources:
         runtime=lambda wc, attempt: 4 * 60 * attempt,
+        mem_mb=lambda wc, attempt: 8 * 1024 * attempt,
     run:
         medium = load_qiime_medium(input.medium)
         manifest = pd.read_csv(input.manifest)

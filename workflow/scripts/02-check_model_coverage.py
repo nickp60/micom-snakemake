@@ -24,7 +24,7 @@ if __name__ == "__main__":
     print("loading abundances")
     data = pd.read_csv(args.abundances)
     for col in ["sample_id",  taxrank, "abundance"]:
-        assert col in data.columns, f"{col} must be a column name"
+        assert col in data.columns, f"{col} must be a column name; colnames are" + " ,".join(data.columns)
     data = data[data.abundance > 0]
     # drop extra cols that could break the groupby summarizing later
     data = data[["sample_id", taxrank, "abundance"]]

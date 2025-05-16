@@ -11,8 +11,8 @@ rule legacy_blast_annotate:
     output:
         blast=f"annotate/{config['id']}_asv_blast_out.tsv",
     resources:
-        mem_mb=4 * 1024,
-    threads: 8
+        mem_mb=32 * 1024,
+    threads: 32
     params:
         dbdir = lambda wildcards, input: os.path.dirname(input.db),
         dbname = lambda wildcards, input: os.path.basename(os.path.splitext(input.db)[0])
@@ -42,7 +42,7 @@ rule annotate_counts:
         detailed=f"annotate/{config['id']}_blast_passed_not_passed.txt",
     threads: 1
     resources:
-        mem_mb=2 * 1024,
+        mem_mb=32 * 1024,
     container:
         "docker://rocker/tidyverse:4.1"
     log:

@@ -24,6 +24,8 @@ Be sure to also include an executor relevant to your environment; I'm using `sna
 
 ### Snakemake
 
+Ensure you are happy with your snakemake configuration.
+
 ### Singularity
 
 ## Prepare 16S amplicon data
@@ -40,16 +42,17 @@ Download AGORA2 genomes as described [here](https://github.com/vdblab/resources/
 This step uses barrnap to pull each genome's rRNAs into a fasta file, adjusts the headers, merges, and creates a blast db under `<directory>/db/<dbname>`.
 
 ```
-snakemake --config stage=format16S  agora_genomes=$PWD/.tests/genomes/ dbname="testdb"  --directory $PWD/mydb/  -n
+snakemake --config stage=format16S  agora_genomes=$PWD/.tests/genomes/ dbname="testdb"  --directory $PWD/mydb/
 ```
 
 ### annotate your ASVs
 This step takes in your counts, your asv fasta, and the manifest of the database you used (see https://raw.githubusercontent.com/micom-dev/databases/refs/heads/main/recipes/agora2/manifests/ for instance).  This allows us to match the genome IDs in the blast database with the model names in the micom model bundles:
 
 ```
-
 snakemake --config stage=annotate16S  id=batch1 asv_counts=$PWD/.tests/asv_counts.csv asv_fasta=$PWD/.tests/testasvs.fasta  model_manifest=$PWD/agora2_refseq_species.tsv db_path_nsq=$PWD/mydb/db/testdb.nsq  --directory $PWD/results/
 ```
+
+
 
 ## Prepare shotgun metagenomic data
 
@@ -62,7 +65,7 @@ The genome names and the names used for the model are often dissimilar; this (ho
 ```
 wget https://raw.githubusercontent.com/micom-dev/databases/refs/heads/main/recipes/agora2/manifests/agora2_refseq_species.tsv
 # can run this with system R if desired and packages are present
-singularity exec -B $PWD  docker://rocker/tidyverse:4.1 Rscript $PWD/workflow/scripts/genomeid_to_modelid_amplicon.R $PWD/results/annotate/batch1_abundances.csv $PWD/agora2_refseq_species.tsv $PWD/results/annotate/batch1_abundances_renamed.csv
+singularity exec -B $PWD  docker://rocker/tidyverse:4.1 Rscript $PWD/workflow/scripts/01-genomeid_to_modelid_amplicon.R $PWD/results/annotate/batch1_abundances.csv $PWD/agora2_refseq_species.tsv $PWD/results/annotate/batch1_abundances_renamed.csv
 ```
 
 
@@ -75,7 +78,7 @@ This workflow requires three files:
 
 - a long-format sample abundances table with columns as follows:
   - `sample_id`
-  - `genus`
+  - `genus/species`
   - `abundance`
 - a MICOM-formatted AGORA model bundle: `wget -O agora201_refseq216_species_1.qza https://zenodo.org/records/7739096/files/agora201_refseq216_species_1.qza?download=11`
 - a MICOM-formatted diet/medium: `wget -O western_diet_gut_agora.qza https://github.com/micom-dev/media/raw/main/media/western_diet_gut_agora.qza`
@@ -89,7 +92,7 @@ This workflow requires three files:
 First, run the workflow with the `--dry-run` flag to prevent snakemake from submitting any jobs.  This will run the logic to match up the taxa you provided with those present in the pre-formated AGORA model.  Genera not able to matched will be written to `unmatchable_genera.csv` in your output directory. In cases of naming mismatches, create a csv file containing your and AGORA's genus names as columns `A` and `B`, and supply in the next step.  The resulting file "postQC_abundances.csv" in the output directory can be used directly by the workflow
 
 ```
- python workflow/scripts/check_model_coverage.py --abundances $PWD/results/annotate/batch1_abundances_renamed.csv --agora ./agora201_refseq216_species_1.qza --outdir results/annotate/QC/
+ python workflow/scripts/02-check_model_coverage.py --abundances $PWD/results/annotate/batch1_abundances_renamed.csv --agora ./agora201_refseq216_species_1.qza --outdir results/annotate/QC/
 
 ```
 
@@ -109,6 +112,13 @@ Having decided on the tradeoff value based on the visualizations in `results/tra
 snakemake --config stage=grow tradeoff=0.6  abundances=$PWD/results/annotate/batch1_abundances_renamed.csv agora=$PWD/agora201_refseq216_species_1.qza medium=$PWD/western_diet_gut_agora.qza taxrank=species             cutoff=.0001 --directory $PWD/results/
 ```
 
+# Gah, it didn't converge!
+
+Sometimes (particularly with low abundance thresholds, open-source solvers, or both) samples will fail to grow.  Sometimes restarting the job can help if it was a matter of not finding a good solution due to the random initial states.  If that fails, we include a script to merge what profiles do exist:
+```
+python workflow/scripts/merge_partial.py path/to/results/growth/ path/to/results/growth.zip
+```
+
 ## Step 3: Analysis
 
 From here, you can follow along the tutorial! Run the following in place of the `growth = grow(com, "models", medium, tradeoff=0.8, threads=2)` line:
@@ -116,4 +126,19 @@ From here, you can follow along the tutorial! Run the following in place of the 
 ```python
 from micom.workflows import load_results
 growth = load_results("results/growth.zip")
+```
+
+
+
+## Development
+The `test.sh` script can be used to test each stage.
+
+```
+bash test.sh format16S
+bash test.sh annotate16S
+bash test.sh fixmodelid
+bash test.sh checkcoverage
+bash test.sh tradeoff
+bash test.sh grow
+
 ```

@@ -34,6 +34,7 @@ match thisstage:
         raise ValueError(f"{thisstage} not a valid stage; choose one of: {', '.join(valid_stages)}")
 
 # this has to be a variable to work in "use rule", cant use config['stage']
+
 module:
     name: thisstage
     snakefile:
