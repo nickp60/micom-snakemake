@@ -49,11 +49,11 @@ outputs = getattr(rules, f"{config['stage']}all").input
 if "solver" not in config:
     config["solver"] = None
 
-theselocalrules = ["all"]
-if config["solver"] == "gurobi":
-    print(f"setting localrules to {theselocalrules}")
-    theselocalrules.append("tradeoffbuild")
-    theselocalrules.append("growbuild")
+# theselocalrules = ["all"]
+# if config["solver"] == "gurobi":
+#     print(f"setting localrules to {theselocalrules}")
+#     theselocalrules.append("tradeoffbuild")
+#     theselocalrules.append("growbuild")
 
 # cant set localrules
 workflow._localrules = set(theselocalrules)
