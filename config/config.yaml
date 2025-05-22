@@ -1,0 +1,4 @@
+dbname: "agora2"
+db_nsq: null
+id: "batch1"
+agora_genomes: null

@@ -49,7 +49,7 @@ outputs = getattr(rules, f"{config['stage']}all").input
 if "solver" not in config:
     config["solver"] = None
 
-# theselocalrules = ["all"]
+theselocalrules = ["all"]
 # if config["solver"] == "gurobi":
 #     print(f"setting localrules to {theselocalrules}")
 #     theselocalrules.append("tradeoffbuild")

@@ -10,9 +10,6 @@ envvars:
 
 
 
-onstart:
-    with open("annotate_config_used.yaml", "w") as f:
-        yaml.dump(config, f)
 
 
 localrules:
