@@ -6,9 +6,11 @@ library(tidyverse)
 
 print("Parsing annotation file")
 counts <- read.csv(snakemake@input[["asv_counts"]])
-for (col in c("sample_id", "asv", "count")){
-    if (! col %in% colnames(counts)){
-        stop("Counts file must contain columns named sample_id, asv, and count")
+colnames(counts) <- ifelse(colnames(counts) == "oligos_id", "sample_id", colnames(counts))
+colnames(counts) <- ifelse(colnames(counts) == "asv_md5", "asv", colnames(counts))
+for (col in colnames(counts)){
+    if (! col %in% c("sample_id", "asv",  "count")){
+        stop(paste("Counts file must contain columns named sample_id, asv, and count; found column:", col))
     }
 }
 

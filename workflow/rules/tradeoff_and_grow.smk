@@ -5,6 +5,8 @@ import sys
 import micom.qiime_formats as qf
 from micom.qiime_formats import load_qiime_medium
 from micom.workflows import grow, save_results, build, tradeoff, load_results
+from micom.measures import production_rates, consumption_rates
+from micom.viz import *
 import seaborn as sns
 import pandas as pd
 
@@ -19,9 +21,15 @@ metadata = pd.DataFrame(data.sample_id.unique(), columns=["sample_id"])
 if "ignore_samples" in config:
     if config["stage"] == "grow":
         print("Are you sure you want to exclude samples from the grow stage?")
-    for sample in config["ignore_samples"]:
-        print("dropping sample")
-        metadata = metadata[metadata.sample_id != sample]
+    if config["ignore_samples"] == "any":
+        for sample in metadata.sample_id:
+            if not os.path.exists(f"tradeoffs/{sample}.csv"):
+                metadata = metadata[metadata.sample_id != sample]
+    else:
+        for sample in config["ignore_samples"]:
+            print("dropping sample")
+            metadata = metadata[metadata.sample_id != sample]
+
 
 if "testn" in config:
     metadata = metadata.head(config["testn"])
@@ -35,8 +43,13 @@ if config["stage"] == "tradeoff":
         ]
 else:
     assert config["tradeoff"] is not None, "Must set tradeoff config value"
-    targets = "growth.zip"
-
+    targets = [
+        "growth.zip",
+        "import_niches.html",
+        "export_niches.html",
+        "production_rates.csv",
+        "consumption_rates.csv",
+    ]
 
 rule all:
     input:
@@ -170,3 +183,18 @@ rule merge_growth:
             growth = merge_gr(growth, growthb)
             print(growth.growth_rates.shape)
         save_results(growth, output.growth)
+
+rule write_production:
+    input:
+        growth = "growth.zip"
+    output:
+        import_niche = "import_niches.html",
+        export_niche = "export_niches.html",
+        production_rates = "production_rates.csv",
+        consumption_rates = "consumption_rates.csv",
+    run:
+        growth = load_results(input.growth)
+        plot_exchanges_per_taxon(growth, perplexity=4, direction="import", filename=output.import_niche)
+        plot_exchanges_per_taxon(growth, perplexity=4, direction="export", filename=output.export_niche)
+        production_rates(growth).to_csv(output.production_rates)
+        consumption_rates(growth).to_csv(output.consumption_rates)

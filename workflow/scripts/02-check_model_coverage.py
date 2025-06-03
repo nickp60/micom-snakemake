@@ -1,3 +1,4 @@
+import copy
 import os
 import sys
 import argparse
@@ -20,11 +21,18 @@ def getargs():
 if __name__ == "__main__":
     args = getargs()
     os.makedirs(args.outdir)
-    taxrank = args.taxrank
+    taxrank = copy.deepcopy(args.taxrank )
     print("loading abundances")
     data = pd.read_csv(args.abundances)
+
     for col in ["sample_id",  taxrank, "abundance"]:
-        assert col in data.columns, f"{col} must be a column name; colnames are" + " ,".join(data.columns)
+        # deal with the case where we have species-level results, a species-level manifest, but wish to aggregate
+        # at the genus level regardless
+        if col not in data.columns and col == "genus" and "species" in data.columns:
+            print("attempting to merge on species, while outputing at genus level")
+            taxrank = "species"
+        else:
+            assert col in data.columns, f"{col} must be a column name; colnames are" + " ,".join(data.columns)
     data = data[data.abundance > 0]
     # drop extra cols that could break the groupby summarizing later
     data = data[["sample_id", taxrank, "abundance"]]
@@ -34,6 +42,7 @@ if __name__ == "__main__":
     agora_taxa = qf.load_qiime_manifest(args.agora)
 
     print(agora_taxa.shape)
+    print(agora_taxa.head())
     # genera or species
     cols_of_interest = [taxrank]
     if taxrank == "species":
@@ -55,15 +64,18 @@ if __name__ == "__main__":
             tochange = data[taxrank] == k
             data.loc[tochange, taxrank] = v
     # especially after replacing taxa (but either way), we need to resum by taxrank to avoid duplicate rows
-    print(f"recalculating abundance at {taxrank}")
-    data = data.groupby(['sample_id', taxrank])['abundance'].sum().reset_index()
-
+    # note that we are reaggregating by args.taxrank, not taxrank, as we use taxrank to match at species in a pinch
+    # when we actually want the args.taxrank results
+    print(f"recalculating abundance at {args.taxrank}")
+    if taxrank != args.taxrank:
+        data = data.merge(agora_taxa[["genus", "species"]], on="species")
+    data = data.groupby(['sample_id', args.taxrank])['abundance'].sum().reset_index()
 
     print("checking for samples with no evaluable taxa")
     for sample in data.sample_id.unique():
         _data = data[data.sample_id == sample].query("abundance > 0")
         ntax = _data.shape[0]
-        _data = _data[_data[taxrank].isin(agora_genera[taxrank])]
+        _data = _data[_data[args.taxrank].isin(agora_taxa[args.taxrank])]
 
         if _data.shape[0] == 0:
             print(f"sample {sample} has no evaluable genera")
@@ -73,7 +85,7 @@ if __name__ == "__main__":
 
     # remove non-agora taxa
     print("generating found fraction plot")
-    data = data[data[taxrank].isin(agora_genera[taxrank])]
+    data = data[data[args.taxrank].isin(agora_taxa[args.taxrank])]
     data_summary = data.groupby('sample_id').agg({'abundance': 'sum'})
     data_summary["tmp"] = "1"
     p = sns.boxplot(data=data_summary, x="abundance", y="tmp")
