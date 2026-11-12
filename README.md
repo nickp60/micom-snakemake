@@ -1,3 +1,5 @@
+>ARCHIVED; this has been succeeded by https://github.com/nickp60/ezflux/
+
 # micom-snakemake
 A snakemake workflow for running MICOM  https://micom-dev.github.io/micom/
 
